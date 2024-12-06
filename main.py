@@ -25,8 +25,8 @@ def convert_to_cv(image_1, image_2):
     image_2_cv = cv2.imread(image_2, 0)
     return image_1_cv, image_2_cv
 
-
-def calculate_features(image_1, image_2, feature_number):
+#region ai
+def calculate_features(image_1_cv, image_2_cv, feature_number):
     orb = cv2.ORB_create(nfeatures=feature_number)
     keypoints_1, descriptors_1 = orb.detectAndCompute(image_1_cv, None)
     keypoints_2, descriptors_2 = orb.detectAndCompute(image_2_cv, None)
@@ -40,7 +40,7 @@ def calculate_matches(descriptors_1, descriptors_2):
     return matches
 
 
-def find_matching_coordinates(keypoints_1, matches):
+def find_matching_coordinates(keypoints_1, keypoints_2, matches):
     coordinates_1 = []
     coordinates_2 = []
     for match in matches:
@@ -69,6 +69,21 @@ def calculate_speed_in_kmps(feature_distance, GSD, time_difference):
     speed = distance / time_difference
     return speed
 
+def ai_speed(image_num):
+    time_difference = get_time_difference(images[image_num], images[image_num + 1])
+    image_1_cv, image_2_cv = convert_to_cv(images[image_num], images[image_num + 1])
+    keypoints_1, keypoints_2, descriptors_1, descriptors_2 = calculate_features(image_1_cv, image_2_cv, 1000)
+    matches = calculate_matches(descriptors_1, descriptors_2)
+    coordinates_1, coordinates_2 = find_matching_coordinates(keypoints_1, keypoints_2, matches)
+    average_feature_distance = calculate_mean_distance(coordinates_1, coordinates_2)
+    speed = calculate_speed_in_kmps(average_feature_distance, 12648, time_difference)
+    return speed
+#endregion ai
+
+def get_distance(image_num): #coordinates
+    img = Image(images[image_num])
+    location = img.gps_longitude
+    print(location)
 
 directory = "img"
 images = []
@@ -77,11 +92,5 @@ for file in os.listdir(directory):
     images.append("img/" + file)
 
 for i in range(len(images) - 1):
-    time_difference = get_time_difference(images[i], images[i + 1])
-    image_1_cv, image_2_cv = convert_to_cv(images[i], images[i + 1])
-    keypoints_1, keypoints_2, descriptors_1, descriptors_2 = calculate_features(image_1_cv, image_2_cv, 1000)
-    matches = calculate_matches(descriptors_1, descriptors_2)
-    coordinates_1, coordinates_2 = find_matching_coordinates(keypoints_1, matches)
-    average_feature_distance = calculate_mean_distance(coordinates_1, coordinates_2)
-    speed = calculate_speed_in_kmps(average_feature_distance, 12648, time_difference)
-    print(speed)
+    print(ai_speed(i))
+    get_distance(i)
