@@ -7,6 +7,7 @@ from datetime import datetime
 import cv2
 import math
 
+# Gets metadata time from the image
 def get_time(image):
     with open(image, 'rb') as image_file:
         img = Image(image_file)
@@ -14,34 +15,34 @@ def get_time(image):
         time = datetime.strptime(time_str, '%Y:%m:%d %H:%M:%S')
     return time
 
-
+# Calculates time difference between two images and returns seconds
 def get_time_difference(image_1, image_2):
     time_1 = get_time(image_1)
     time_2 = get_time(image_2)
     time_difference = time_2 - time_1
     return time_difference.seconds
 
-
+# Converts two images into computer vision
 def convert_to_cv(image_1, image_2):
     image_1_cv = cv2.imread(image_1, 0)
     image_2_cv = cv2.imread(image_2, 0)
     return image_1_cv, image_2_cv
 
-#region ai
+# Calculates keypoints and descriptors of each image
 def calculate_features(image_1_cv, image_2_cv, feature_number):
     orb = cv2.ORB_create(nfeatures=feature_number)
     keypoints_1, descriptors_1 = orb.detectAndCompute(image_1_cv, None)
     keypoints_2, descriptors_2 = orb.detectAndCompute(image_2_cv, None)
     return keypoints_1, keypoints_2, descriptors_1, descriptors_2
 
-
+# Calculate the matches between descriptors
 def calculate_matches(descriptors_1, descriptors_2):
     brute_force = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     matches = brute_force.match(descriptors_1, descriptors_2)
     matches = sorted(matches, key=lambda x: x.distance)
     return matches
 
-
+# Finds matching coordinates
 def find_matching_coordinates(keypoints_1, keypoints_2, matches):
     coordinates_1 = []
     coordinates_2 = []
@@ -54,7 +55,7 @@ def find_matching_coordinates(keypoints_1, keypoints_2, matches):
         coordinates_2.append((x2, y2))
     return coordinates_1, coordinates_2
 
-
+# Calculates the mean distance between two coordinates
 def calculate_mean_distance(coordinates_1, coordinates_2):
     all_distances = 0
     merged_coordinates = list(zip(coordinates_1, coordinates_2))
@@ -65,13 +66,14 @@ def calculate_mean_distance(coordinates_1, coordinates_2):
         all_distances = all_distances + distance
     return all_distances / len(merged_coordinates)
 
-
+# Calculates the speed in kilometers per second between distances
 def calculate_speed_in_kmps(feature_distance, GSD, time_difference):
     distance = feature_distance * GSD / 100000
     print(distance)
     speed = distance / time_difference
     return speed
 
+# Gets speed from this image to the next one
 def get_ai_speed(image_num):
     time_difference = get_time_difference(images[image_num], images[image_num+1])
     image_1_cv, image_2_cv = convert_to_cv(images[image_num], images[image_num + 1])
@@ -83,10 +85,13 @@ def get_ai_speed(image_num):
     return speed
 #endregion ai
 
+# Converts degrees minutes and seconds into degrees with decimal points
 def dms_to_decimal(degrees, minutes, seconds):
     return degrees + (minutes / 60.0) + (seconds / 3600.0)
 
 distances = []
+
+# Gets the distance from two images
 def get_distance(image_num):
     total_distance = 0
     R = 6371.0
@@ -131,10 +136,12 @@ def get_distance(image_num):
 
     return total_distance
 
+# Returns speed from image
 def exif_speed(image_num):
     speed = get_distance(image_num) / get_time_difference(images[image_num], images[image_num+1])
     return speed
 
+# Initializes the images
 def init_images():
     directory = "img"
     images = []
@@ -145,9 +152,9 @@ def init_images():
         if (len(images) != 1):
             times.append(get_time_difference(images[images.index("img/" + file) - 1], "img/" + file))
 
-
     return images, times
 
+# Simulates the images
 def simulate_images():
     for i in range(len(images) - 1):
 
