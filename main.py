@@ -1,4 +1,6 @@
 import os
+import time
+
 from exif import Image
 from datetime import datetime
 import cv2
@@ -69,9 +71,9 @@ def calculate_speed_in_kmps(feature_distance, GSD, time_difference):
     speed = distance / time_difference
     return speed
 
-def ai_speed(image_num):
-    time_difference = get_time_difference(images[image_num], images[image_num + 1])
-    image_1_cv, image_2_cv = convert_to_cv(images[image_num], images[image_num + 1])
+def ai_speed(imgstr, imgstr2):
+    time_difference = get_time_difference(imgstr, imgstr2)
+    image_1_cv, image_2_cv = convert_to_cv(imgstr, imgstr2)
     keypoints_1, keypoints_2, descriptors_1, descriptors_2 = calculate_features(image_1_cv, image_2_cv, 1000)
     matches = calculate_matches(descriptors_1, descriptors_2)
     coordinates_1, coordinates_2 = find_matching_coordinates(keypoints_1, keypoints_2, matches)
@@ -80,17 +82,35 @@ def ai_speed(image_num):
     return speed
 #endregion ai
 
-def get_distance(image_num): #coordinates
-    img = Image(images[image_num])
+def get_distance(imgstr): #coordinates
+    img = Image(imgstr)
     location = img.gps_longitude
     print(location)
 
-directory = "img"
-images = []
 
-for file in os.listdir(directory):
-    images.append("img/" + file)
+def init_images():
+    directory = "img"
+    images = []
+    times = []
 
-for i in range(len(images) - 1):
-    print(ai_speed(i))
-    get_distance(i)
+    for file in os.listdir(directory):
+        images.append("img/" + file)
+        if (len(images) != 1):
+            times.append(get_time_difference(images[images.index("img/" + file) - 1], "img/" + file))
+
+
+    return images, times
+
+def simulate_images():
+    for i in range(len(images) - 1):
+        if (len(images[i]) != 1):
+            print(ai_speed(images[i], images[i + 1]))
+            get_distance(images[i])
+            print("sleep for: ")
+            print(times[i] - 1)
+            time.sleep(times[i - 1])
+            if (i == len(images)):
+                time.sleep(100)
+
+images, times = init_images()
+simulate_images()
