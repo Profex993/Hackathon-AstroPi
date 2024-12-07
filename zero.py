@@ -13,15 +13,19 @@ press = sense.get_pressure()
 hum = sense.get_humidity()
 
 # Defining colors
-a = (0, 0, 0)  # Black
-b = (0, 128, 0)  # Green (Humidity)
+a = (0, 0, 0)  # Black (Pressure)
+b = (0, 128, 0)  # Green (grass)
 c = (255, 255, 255)  # White (Default)
 rgb = sense.color
 d = (rgb.red, rgb.green, rgb.blue)  # Light color (Dynamic)
 
-# Temperature color (for temp >= 90)
-t = (255, 0, 0)  # Red for temperature
-h = (0, 0, 139)  # Dark Blue for pressure
+# Temperature colors
+t = (255, 0, 0)  # Red for temp >= 50
+t_minus = (135, 206, 235)  # Light Blue for temp <= 0
+
+# Humidity colors
+h = (0, 0, 255)  # Blue for humidity >= 80%
+h_minus = (255, 165, 0)  # Orange for humidity <= 40%
 
 # Base grid (for anim)
 base_grid = [
@@ -35,13 +39,20 @@ base_grid = [
     a, a, b, b, b, b, a, a
 ]
 
+# Function to change colors in the grid
 def change_color(grid, old_color, new_color):
     """Change all instances of old_color in the grid to new_color, except for b."""
     return [new_color if pixel == old_color and pixel != b else pixel for pixel in grid]
 
+# Animation functions
 def temp_anim():
-    """Change all 'c' to 't' for temperature animation (Red for temp >= 90)."""
+    """Change all 'c' to 't' for temperature animation (Red for temp >= 50)."""
     grid = change_color(base_grid, c, t)
+    sense.set_pixels(grid)
+
+def temp_minus_anim():
+    """Change all 'c' to 't_minus' for temperature below 0 animation (Light Blue for temp <= 0)."""
+    grid = change_color(base_grid, c, t_minus)
     sense.set_pixels(grid)
 
 def pressure_anim():
@@ -50,8 +61,13 @@ def pressure_anim():
     sense.set_pixels(grid)
 
 def humidity_anim():
-    """Change all 'c' to 'b' for humidity (Green for hum >= 50)."""
+    """Change all 'c' to 'h' for high humidity (Green for hum >= 80%)."""
     grid = change_color(base_grid, c, h)
+    sense.set_pixels(grid)
+
+def humidity_minus_anim():
+    """Change all 'c' to 'h_minus' for low humidity (Orange for hum <= 40%)."""
+    grid = change_color(base_grid, c, h_minus)
     sense.set_pixels(grid)
 
 def light_anim():
@@ -59,18 +75,25 @@ def light_anim():
     grid = change_color(base_grid, c, d)
     sense.set_pixels(grid)
 
+# Update display based on conditions
 def update_display():
     """Check and update the grid for temperature, pressure, and humidity."""
     grid = base_grid[:]
     
-    if temp >= 90:  # Update temperature
+    if temp >= 50:  # Update temperature for high temp
         grid = change_color(grid, c, t)
+    
+    if temp <= 0:  # Update temperature for low temp
+        grid = change_color(grid, c, t_minus)
     
     if press >= 1000:  # Update pressure
         grid = change_color(grid, c, a)
     
-    if hum >= 50:  # Update humidity
+    if hum >= 80:  # Update humidity for high humidity
         grid = change_color(grid, c, h)
+    
+    if hum <= 40:  # Update humidity for low humidity
+        grid = change_color(grid, c, h_minus)
     
     if rgb.red != 0 or rgb.green != 0 or rgb.blue != 0:  # Any light color
         grid = change_color(grid, c, d)
@@ -83,9 +106,6 @@ last_press = press
 last_hum = hum
 last_rgb = rgb  # To track the last light color
 
-# Variables for tracking the animations
-active_animations = []
-
 # Continuous loop to check the values and react accordingly
 while True:
     # Get sensor values
@@ -94,35 +114,38 @@ while True:
     hum = sense.get_humidity()
     rgb = sense.color
 
-    # Check if any condition has changed
-    if temp != last_temp or press != last_press or hum != last_hum or rgb != last_rgb:
-        # Update last known values
-        last_temp = temp
-        last_press = press
-        last_hum = hum
-        last_rgb = rgb
-        
-        # Determine which animations should be active
-        active_animations = []
-        if temp >= 90:
-            active_animations.append(temp_anim)
-        if press >= 1000:
-            active_animations.append(pressure_anim)
-        if hum >= 50:
-            active_animations.append(humidity_anim)
-        if rgb.red != 0 or rgb.green != 0 or rgb.blue != 0:
-            active_animations.append(light_anim)
+    # Determine the active animations based on conditions
+    active_animations = []
 
-    # If any active animations exist, alternate between them
+    # Temperature check
+    if temp >= 50:
+        active_animations.append(temp_anim)
+    elif temp <= 0:
+        active_animations.append(temp_minus_anim)
+
+    # Pressure check
+    if press >= 1000:
+        active_animations.append(pressure_anim)
+
+    # Humidity check
+    if hum >= 80:
+        active_animations.append(humidity_anim)
+    elif hum <= 40:
+        active_animations.append(humidity_minus_anim)
+
+    # Light check
+    if rgb.red != 0 or rgb.green != 0 or rgb.blue != 0:
+        active_animations.append(light_anim)
+
+    # Update the display with the active animations
     if active_animations:
         for anim in active_animations:
-            anim()
-            time.sleep(0.3)  # Brief pause before switching to next animation
+            anim()  # Execute the current animation
+            time.sleep(0.3)  # Střídejte animace každých 0.3 sekundy
 
     else:
         # Default animation if no conditions are met
         update_display()
     
     # Small delay before checking again to avoid overloading the processor
-    time.sleep(0.3)
-
+    time.sleep(0.3)  # Delší zpoždění pro kontrolu změn
