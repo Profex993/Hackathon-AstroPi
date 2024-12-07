@@ -12,13 +12,14 @@ h1 {
 
 p {
     font-size: 300%;
-    padding: 3%;
+    padding: 1%;
     margin: 1%;
 }
 
 img{
     width: 20%;
-    height: 20%;
+    height: auto;
+    align-content: center;
 }
 
 @media (max-width: 768px) {

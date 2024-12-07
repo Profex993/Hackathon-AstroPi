@@ -8,9 +8,6 @@ import cv2
 import math
 import json
 
-
-
-
 # Gets metadata time from the image
 def get_time(image):
     with open(image, 'rb') as image_file:
