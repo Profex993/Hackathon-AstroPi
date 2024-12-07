@@ -16,8 +16,6 @@ hum = sense.get_humidity()
 a = (0, 0, 0)  # Black (Pressure)
 b = (0, 128, 0)  # Green (grass)
 c = (255, 255, 255)  # White (Default)
-rgb = sense.color
-d = (rgb.red, rgb.green, rgb.blue)  # Light color (Dynamic)
 
 # Temperature colors
 t = (255, 0, 0)  # Red for temp >= 50
@@ -29,7 +27,7 @@ h_minus = (255, 165, 0)  # Orange for humidity <= 40%
 
 # Base grid (for anim)
 base_grid = [
-    c, c, a, a, a, a, c, c,
+    c, c, a, c, c, a, c, c,
     c, c, a, a, a, a, c, c,
     a, a, c, c, c, c, a, a,
     c, c, a, b, b, a, c, c,
@@ -61,7 +59,7 @@ def pressure_anim():
     sense.set_pixels(grid)
 
 def humidity_anim():
-    """Change all 'c' to 'h' for high humidity (Green for hum >= 80%)."""
+    """Change all 'c' to 'h' for high humidity (Blue for hum >= 80%)."""
     grid = change_color(base_grid, c, h)
     sense.set_pixels(grid)
 
@@ -70,16 +68,16 @@ def humidity_minus_anim():
     grid = change_color(base_grid, c, h_minus)
     sense.set_pixels(grid)
 
-def light_anim():
-    """Change all 'c' to the current light color (RGB)."""
-    grid = change_color(base_grid, c, d)
+def light_anim(light_color):
+    """Change all 'c' to the dynamic light color."""
+    grid = change_color(base_grid, c, light_color)
     sense.set_pixels(grid)
 
 # Update display based on conditions
 def update_display():
-    """Check and update the grid for temperature, pressure, and humidity."""
+    """Check and update the grid for temperature, pressure, humidity, and light color."""
     grid = base_grid[:]
-    
+
     if temp >= 50:  # Update temperature for high temp
         grid = change_color(grid, c, t)
     
@@ -95,16 +93,12 @@ def update_display():
     if hum <= 40:  # Update humidity for low humidity
         grid = change_color(grid, c, h_minus)
     
-    if rgb.red != 0 or rgb.green != 0 or rgb.blue != 0:  # Any light color
-        grid = change_color(grid, c, d)
+    # Update light dynamically
+    rgb = sense.color
+    light_color = (rgb.red, rgb.green, rgb.blue)
+    grid = change_color(grid, c, light_color)
     
     sense.set_pixels(grid)
-
-# Variables to track the current state of each condition
-last_temp = temp
-last_press = press
-last_hum = hum
-last_rgb = rgb  # To track the last light color
 
 # Continuous loop to check the values and react accordingly
 while True:
@@ -112,7 +106,7 @@ while True:
     temp = sense.get_temperature()
     press = sense.get_pressure()
     hum = sense.get_humidity()
-    rgb = sense.color
+    rgb = sense.color  # Dynamic light sensor
 
     # Determine the active animations based on conditions
     active_animations = []
@@ -134,18 +128,19 @@ while True:
         active_animations.append(humidity_minus_anim)
 
     # Light check
-    if rgb.red != 0 or rgb.green != 0 or rgb.blue != 0:
-        active_animations.append(light_anim)
+    if rgb.red != 0 or rgb.green != 0 or rgb.blue != 0:  # Any detected light
+        active_animations.append(lambda: light_anim((rgb.red, rgb.green, rgb.blue)))
 
     # Update the display with the active animations
     if active_animations:
         for anim in active_animations:
             anim()  # Execute the current animation
-            time.sleep(0.3)  # Střídejte animace každých 0.3 sekundy
+            time.sleep(0.3)  # Switch animations every 0.3 seconds
 
     else:
         # Default animation if no conditions are met
         update_display()
     
     # Small delay before checking again to avoid overloading the processor
-    time.sleep(0.3)  # Delší zpoždění pro kontrolu změn
+    time.sleep(0.3)  # Delay for checking changes
+
