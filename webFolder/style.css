@@ -16,6 +16,11 @@ p {
     margin: 1%;
 }
 
+img{
+    width: 20%;
+    height: 20%;
+}
+
 @media (max-width: 768px) {
     h1 {
         font-size: 400%;

@@ -1,11 +1,15 @@
 import os
+import threading
 import time
-from functools import total_ordering
 
 from exif import Image
 from datetime import datetime
 import cv2
 import math
+import json
+
+
+
 
 # Gets metadata time from the image
 def get_time(image):
@@ -157,18 +161,59 @@ def init_images():
 # Simulates the images
 def simulate_images():
     for i in range(len(images) - 1):
-
+        out = '{ "ai" : 0, "exif" : 0, "img": "img", "img1": 0}'
+        val = json.loads(out)
         if len(images[i]) != 1:
             print("ai")
             print(get_ai_speed(i))
+            val["ai"] = get_ai_speed(i)
             print("exif")
             print(exif_speed(i))
-
+            val["exif"] = exif_speed(i)
+            val["img"] = images[i]
+            val["img1"] = images[i - 1]
             print("sleep for: ")
             print(times[i] - 1)
+            val["sleep"] = times[i] - 1
+            with open("webFolder/data.json", "w") as outfile:
+                json.dump(val, outfile)
             time.sleep(times[i - 1])
             if i == len(images):
                 time.sleep(100)
 
+
 images, times = init_images()
-simulate_images()
+
+def task1():
+    simulate_images()
+
+def task2():
+    app.run()
+
+thread1 = threading.Thread(target=task1)
+thread2 = threading.Thread(target=task2)
+
+thread1.start()
+thread2.start()
+
+from flask import Flask, send_from_directory, send_file
+
+app = Flask(__name__)
+
+WEB_FOLDER = "webFolder"
+
+@app.route("/")
+def serve_index():
+    return send_from_directory(WEB_FOLDER, "index.html")
+
+@app.route("/<path:filename>")
+def serve_static_files(filename):
+    return send_from_directory(WEB_FOLDER, filename)
+
+@app.route('/get-image', methods=['GET'])
+def get_image(): # Path inside the static folder
+    if os.path.exists("img"):
+        return send_from_directory('img', 'photo_0673.jpg')  # Serve the file from the static folder
+    else:
+        return "Image not found", 404
+
